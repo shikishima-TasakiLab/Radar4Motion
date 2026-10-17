@@ -1,82 +1,87 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.8)
 project(radar4motion)
 
-add_compile_options(-std=c++17)
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
-set(CATKIN_PACKAGE_DEPENDENCIES
-    # open3d_catkin
-)
+# find dependencies
+find_package(ament_cmake REQUIRED)
+find_package(PCL REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(pcl_ros REQUIRED)
 
-find_package(catkin REQUIRED)
-find_package(PCL 1.8 REQUIRED)
-find_package(catkin REQUIRED COMPONENTS
-    pcl_ros
-    roscpp
-    sensor_msgs
-    std_msgs
-    tf
-)
+find_package(Sophus REQUIRED)
+find_package(TBB REQUIRED)
 
-# find_package(Boost REQUIRED COMPONENTS system)
-catkin_package(
-    CATKIN_DEPENDS
-)
-
-option(USE_SYSTEM_EIGEN3 "Use system pre-installed Eigen" OFF)
-option(USE_SYSTEM_SOPHUS "Use system pre-installed Sophus" OFF)
-option(USE_SYSTEM_TSL-ROBIN-MAP "Use system pre-installed tsl_robin" OFF)
-option(USE_SYSTEM_TBB "Use system pre-installed oneAPI/tbb" OFF)
-include(3rdparty/find_dependencies.cmake)
+#option(USE_SYSTEM_EIGEN3 "Use system pre-installed Eigen" OFF)
+#option(USE_SYSTEM_SOPHUS "Use system pre-installed Sophus" OFF)
+#option(USE_SYSTEM_TSL-ROBIN-MAP "Use system pre-installed tsl_robin" OFF)
+#option(USE_SYSTEM_TBB "Use system pre-installed oneAPI/tbb" OFF)
+#include(3rdparty/find_dependencies.cmake)
 
 include_directories(
-    include
-    include/radar4motion
-    include/radar4motion/ini_handler_cpp
-    include/radar4motion/kiss-icp
-    ${catkin_INCLUDE_DIRS}
-    ${Open3D_INCLUDE_DIRS}
-    ${OpenMP_CXX_INCLUDE_DIRS}
+  include
+  include/radar4motion/kiss-icp
+  3rdparty/robin-map/include
+  ${PCL_INCLUDE_DIRS}
 )
 
-link_directories(${PCL_LIBRARY_DIRS})
-add_definitions(${PCL_DEFINITIONS})
-
-add_executable(${PROJECT_NAME}
-    # main
-    src/main.cpp
-    # radar4motion
-    src/core.cpp
-    src/radar4motion/odometry.cpp
-    src/radar4motion/preprocessing.cpp
-    # kiss-icp
-    include/radar4motion/kiss-icp/Preprocessing.cpp
-    include/radar4motion/kiss-icp/Registration.cpp
-    include/radar4motion/kiss-icp/VoxelHashMap.cpp
-    include/radar4motion/kiss-icp/Threshold.cpp
-    include/radar4motion/kiss-icp/VoxelUtils.cpp
-    include/radar4motion/kiss-icp/Deskew.cpp
-    # radar ego motion estimation
-    include/ego_motion_estimator/ego_motion_estimator.cpp
-    include/ego_motion_estimator/radar_point_cloud.cpp
-    # Vod parse utils
-    include/vod_utils/vod_parse_utils.cpp
+add_executable(radar4motion
+  # main
+  src/main.cpp
+  # kiss-icp
+  include/radar4motion/kiss-icp/Deskew.cpp
+  include/radar4motion/kiss-icp/Preprocessing.cpp
+  include/radar4motion/kiss-icp/Registration.cpp
+  include/radar4motion/kiss-icp/Threshold.cpp
+  include/radar4motion/kiss-icp/VoxelHashMap.cpp
+  include/radar4motion/kiss-icp/VoxelUtils.cpp
+)
+target_include_directories(radar4motion PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_compile_features(radar4motion PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+ament_target_dependencies(
+  radar4motion
+  rclcpp
+  sensor_msgs
+  std_msgs
+  Sophus
+  tf2_ros
+  tf2
+  pcl_ros
+)
+target_link_libraries(radar4motion
+  ${PCL_LIBRARIES}
+  Sophus::Sophus
+  TBB::tbb
 )
 
-add_dependencies(${PROJECT_NAME}
-    ${${PROJECT_NAME}_EXPORTED_TARGETS}
-    ${catkin_EXPORTED_TARGETS}
+link_directories(
+  ${PCL_LIBRARY_DIRS}
+)
+add_definitions(
+  ${PCL_DEFINITIONS}
 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Open3D_CXX_FLAGS}")
+install(TARGETS radar4motion
+  DESTINATION lib/${PROJECT_NAME})
 
-target_link_libraries(${PROJECT_NAME}
-    PUBLIC ${LIBRARIES}
-    ${catkin_LIBRARIES}
-    ${PCL_LIBRARIES}
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  # the following line skips the linter which checks for copyrights
+  # comment the line when a copyright and license is added to all source files
+  set(ament_cmake_copyright_FOUND TRUE)
+  # the following line skips cpplint (only works in a git repo)
+  # comment the line when this package is in a git repo and when
+  # a copyright and license is added to all source files
+  set(ament_cmake_cpplint_FOUND TRUE)
+  ament_lint_auto_find_test_dependencies()
+endif()
 
-    Eigen3::Eigen
-    tsl::robin_map
-    Sophus::Sophus
-    TBB::tbb
-    ${OpenMP_CXX_LIBRARIES}
-)
+ament_package()

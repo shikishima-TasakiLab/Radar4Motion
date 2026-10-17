@@ -1,3 +1,6 @@
 [submodule "include/ini_handler_cpp"]
 	path = include/ini_handler_cpp
 	url = http://KUAilab.synology.me:30000/ailabtools/ini_handler_cpp.git
+[submodule "3rdparty/robin-map"]
+	path = 3rdparty/robin-map
+	url = https://github.com/Tessil/robin-map.git
