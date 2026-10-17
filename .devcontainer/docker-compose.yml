@@ -1,0 +1,8 @@
+version: '3'
+services:
+  radar4motion_ros2:
+    image: ros:humble-perception
+    stdin_open: true
+    tty: true
+    volumes:
+      - ../:/workspace/src/radar4motion:rw
